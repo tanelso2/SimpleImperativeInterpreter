@@ -42,6 +42,7 @@ data Stmt = Seq [Stmt]
           | While BExpr Stmt
           | Skip
           | Print String
+          | Assert BExpr
           deriving (Show)
 
 data Func = Fun String Stmt deriving (Show)

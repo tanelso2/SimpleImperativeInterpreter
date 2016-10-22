@@ -31,6 +31,7 @@ languageDef =
                                       , "print"
                                       , "println"
                                       , "def"
+                                      , "assert"
                                       ]
              , Token.reservedOpNames = ["+", "-", "*", "/", "="
                                        , "<", ">", "and", "or", "not"
@@ -87,6 +88,7 @@ statement' = ifStmt
             <|> skipStmt
             <|> assignStmt
             <|> printStmt
+            <|> assertStmt
 
 printStmt :: Parser Stmt
 printStmt =
@@ -127,6 +129,12 @@ skipStmt :: Parser Stmt
 skipStmt =
     do reserved "skip"
        return Skip
+
+assertStmt :: Parser Stmt
+assertStmt =
+    do reserved "assert"
+       cond <- bExpression
+       return $ Assert cond
 
 iExpression :: Parser IExpr
 iExpression = buildExpressionParser iOperators iTerm

@@ -36,6 +36,12 @@ eval_stmt stmt m =
         putStr s
         return m
     Skip -> return m
+    Assert bexp ->
+        case eval_bexp bexp m of
+        BoolVal True -> return m
+        --TODO: modify so it doesn't print AST
+        BoolVal False -> error $ "Assertion error: " ++ show bexp ++ " is false"
+        _ -> error $ "Failure to evaluate " ++ show bexp ++ " as boolean"
 
 eval_iexp :: IExpr -> Memory -> Val
 eval_iexp exp m =
