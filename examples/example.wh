@@ -2,6 +2,6 @@ def main() {
     i = 3;
     i = i + 1;
     if (i > 3)
-        then y = 4
-        else y = 2
+        then y = 4;
+        else y = 2;;
 }

@@ -1,0 +1,7 @@
+def main() {
+    println "Hello";
+}
+
+def other() {
+    println "This shouldn't print";
+}

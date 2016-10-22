@@ -1,4 +1,4 @@
 def main() {
     print "abcd";
-    i = 1
+    i = 1;
 }

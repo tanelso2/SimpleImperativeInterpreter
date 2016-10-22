@@ -6,6 +6,7 @@ import Control.Monad
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Language
+import Text.ParserCombinators.Parsec.Prim
 import qualified Text.ParserCombinators.Parsec.Token as Token
 import qualified Data.Map.Strict as Map
 
@@ -49,6 +50,7 @@ whiteSpace = Token.whiteSpace lexer
 stringLiteral = Token.stringLiteral lexer
 braces = Token.braces lexer
 commaSep = Token.commaSep lexer
+semiSep1 = Token.semiSep1 lexer
 
 
 whileParser :: Parser Prog
@@ -76,7 +78,7 @@ statement = parens statement
             <|> sequenceOfStmt
 
 sequenceOfStmt =
-    do list <- (sepBy1 statement' semi)
+    do list <- endBy1 statement' semi
        return $ if length list == 1 then head list else Seq list
 
 statement' :: Parser Stmt
@@ -187,7 +189,7 @@ parseString str =
 
 parseFile :: String -> IO Prog
 parseFile file =
-    do program <- readFile file
-       case parse whileParser "" program of
+    do result <- parseFromFile whileParser file
+       case result of
            Left e -> print e >> fail "parse error"
            Right r -> return r
