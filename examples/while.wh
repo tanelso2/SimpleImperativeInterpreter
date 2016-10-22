@@ -1,0 +1,8 @@
+def main() {
+    x = 0;
+    y = 1;
+    while (x < 5) do {
+        x = x + 1;
+        y = y * 2
+    }
+}

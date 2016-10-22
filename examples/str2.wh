@@ -1,0 +1,4 @@
+def main() {
+    print "abcd\n";
+    print "wxyz\n"
+}

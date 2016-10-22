@@ -9,8 +9,11 @@ data Val = BoolVal Bool
 
 type Memory = Map.Map String Val
 
-eval :: Stmt -> IO Memory
-eval s = eval_stmt s Map.empty
+eval :: Prog -> IO Memory
+eval (Program funcMap) =
+    case Map.lookup "main" funcMap of
+    Just (Fun _ stmt) -> eval_stmt stmt Map.empty
+    Nothing -> error $ "No main function found in program"
 
 eval_stmt :: Stmt -> Memory -> IO Memory
 eval_stmt stmt m =

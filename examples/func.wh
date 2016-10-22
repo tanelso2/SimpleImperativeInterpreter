@@ -1,0 +1,4 @@
+def main() {
+    x = 1;
+    if (x > 1) then println "True" else println "False"
+}

@@ -1,5 +1,7 @@
 module ParseWhile.Grammar where
 
+import qualified Data.Map.Strict as Map
+
 data BExpr = BoolConst Bool
            | BMonary BMonOp BExpr
            | BBinary BBinOp BExpr BExpr
@@ -41,3 +43,8 @@ data Stmt = Seq [Stmt]
           | Skip
           | Print String
           deriving (Show)
+
+data Func = Fun String Stmt deriving (Show)
+
+type FuncMap = Map.Map String Func
+data Prog = Program FuncMap deriving (Show)

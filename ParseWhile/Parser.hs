@@ -7,6 +7,7 @@ import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Language
 import qualified Text.ParserCombinators.Parsec.Token as Token
+import qualified Data.Map.Strict as Map
 
 languageDef =
     emptyDef { Token.commentStart   = "/*"
@@ -27,6 +28,8 @@ languageDef =
                                       , "or"
                                       , "abs"
                                       , "print"
+                                      , "println"
+                                      , "def"
                                       ]
              , Token.reservedOpNames = ["+", "-", "*", "/", "="
                                        , "<", ">", "and", "or", "not"
@@ -45,10 +48,28 @@ semi = Token.semi lexer
 whiteSpace = Token.whiteSpace lexer
 stringLiteral = Token.stringLiteral lexer
 braces = Token.braces lexer
+commaSep = Token.commaSep lexer
 
 
-whileParser :: Parser Stmt
-whileParser = whiteSpace >> statement
+whileParser :: Parser Prog
+whileParser = whiteSpace >> program
+
+program :: Parser Prog
+program =
+    do list <- (sepBy1 function whiteSpace)
+       return $ Program $ foldl funcNameFolder Map.empty list
+
+funcNameFolder :: FuncMap -> Func -> FuncMap
+funcNameFolder m f@(Fun name _) = Map.insert name f m
+
+
+function :: Parser Func
+function =
+    do reserved "def"
+       name <- identifier
+       parens $ commaSep identifier
+       body <- braces statement
+       return $ Fun name body
 
 statement :: Parser Stmt
 statement = parens statement
@@ -67,9 +88,13 @@ statement' = ifStmt
 
 printStmt :: Parser Stmt
 printStmt =
-    do reserved "print"
-       str <- stringLiteral
-       return $ Print str
+    (do reserved "print"
+        str <- stringLiteral
+        return $ Print str)
+    <|>
+    (do reserved "println"
+        str <- stringLiteral
+        return $ Print $ str ++ "\n")
 
 ifStmt :: Parser Stmt
 ifStmt =
@@ -154,13 +179,13 @@ relation = (reservedOp ">" >> return Greater)
            <|> (reservedOp ">=" >> return GEQ)
            <|> (reservedOp "!=" >> return NotEquals)
 
-parseString :: String -> Stmt
+parseString :: String -> Prog
 parseString str =
     case parse whileParser "" str of
         Left e -> error $ show e
         Right r -> r
 
-parseFile :: String -> IO Stmt
+parseFile :: String -> IO Prog
 parseFile file =
     do program <- readFile file
        case parse whileParser "" program of
