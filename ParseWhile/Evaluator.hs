@@ -5,6 +5,7 @@ import qualified Data.Map.Strict as Map
 
 data Val = BoolVal Bool
          | IntVal Integer
+         | StringVal String
          deriving (Show)
 
 type Memory = Map.Map String Val
@@ -22,95 +23,81 @@ eval_stmt stmt m =
         m' <- eval_stmt x m
         eval_stmt (Seq xs) m'
     Seq [] -> return m
-    Assign var iexp -> return $ Map.insert var (eval_iexp iexp m) m
-    If bexp stmt1 stmt2 ->
-        case eval_bexp bexp m of
+    Assign var exp -> return $ Map.insert var (eval_exp exp m) m
+    If exp stmt1 stmt2 ->
+        case eval_exp exp m of
         BoolVal True -> eval_stmt stmt1 m
         BoolVal False -> eval_stmt stmt2 m
-        _ -> error $ "Failure to evaluate " ++ show bexp ++ " as boolean"
-    While bexp s ->
+        _ -> error $ "Failure to evaluate " ++ show exp ++ " as boolean"
+    While exp s ->
         let while_true = Seq [s, stmt] in
         let while_false = Skip in
-        eval_stmt (If bexp while_true while_false) m
-    Print s -> do
-        putStr s
-        return m
+        eval_stmt (If exp while_true while_false) m
+    Print exp ->
+        case eval_exp exp m of
+        StringVal s ->
+            do putStr s
+               return m
+        _ -> error $ "Typechecking should have failed"
+    PrintLn exp ->
+        case eval_exp exp m of
+        StringVal s ->
+            do putStr s
+               putChar '\n'
+               return m
+        _ -> error $ "Typechecking should have failed"
     Skip -> return m
-    Assert bexp ->
-        case eval_bexp bexp m of
+    Assert exp ->
+        case eval_exp exp m of
         BoolVal True -> return m
         --TODO: modify so it doesn't print AST
-        BoolVal False -> error $ "Assertion error: " ++ show bexp ++ " is false"
-        _ -> error $ "Failure to evaluate " ++ show bexp ++ " as boolean"
+        BoolVal False -> error $ "Assertion error: " ++ show exp ++ " is false"
+        _ -> error $ "Failure to evaluate " ++ show exp ++ " as boolean"
 
-eval_iexp :: IExpr -> Memory -> Val
-eval_iexp exp m =
+eval_exp :: Expr -> Memory -> Val
+eval_exp exp m =
     case exp of
-    IntConst i -> IntVal i
+    ConstExpr c -> constToVal c
     Var s ->
         case Map.lookup s m of
         Just x -> x
         Nothing -> error $ "Variable " ++ show s ++ " has not been initialized"
-    IMonary op iexp ->
-        let v = eval_iexp iexp m in
-        apply_imon_op op v
-    IBinary op exp1 exp2 ->
-        let v1 = eval_iexp exp1 m in
-        let v2 = eval_iexp exp2 m in
-        apply_ibin_op op v1 v2
+    Monary op exp ->
+        let v = eval_exp exp m in
+        apply_mon_op op v
+    Binary op exp1 exp2 ->
+        let v1 = eval_exp exp1 m in
+        let v2 = eval_exp exp2 m in
+        apply_bin_op op v1 v2
 
-apply_imon_op :: IMonOp -> Val -> Val
-apply_imon_op op (IntVal i) =
-    IntVal $ case op of
-             Neg -> -i
-             Abs -> abs i
-apply_imon_op op _ = error $ "Cannot apply " ++ show op ++ " to non integer value"
+apply_mon_op :: MonOp -> Val -> Val
+apply_mon_op op v =
+    case (op,v) of
+    (Not,BoolVal b) -> BoolVal $ not b
+    (Neg,IntVal i) -> IntVal $ -i
+    (Abs,IntVal i) -> IntVal $ abs i
+    _ -> error $ "Typechecking failed. God help us all"
 
-apply_ibin_op :: IBinOp -> Val -> Val -> Val
-apply_ibin_op op (IntVal i1) (IntVal i2) =
-    IntVal $ case op of
-             Add -> i1 + i2
-             Subtract -> i1 - i2
-             Multiply -> i1 * i2
-             Divide -> i1 `div` i2
-apply_ibin_op op _ _ = error $ "Cannot apply " ++ show op ++ " to non integer values"
+apply_bin_op :: BinOp -> Val -> Val -> Val
+apply_bin_op op v1 v2 =
+    case (op,v1,v2) of
+    (And,BoolVal b1, BoolVal b2) -> BoolVal $ b1 && b2
+    (Or,BoolVal b1, BoolVal b2) -> BoolVal $ b1 || b2
+    (Add,IntVal i1, IntVal i2) -> IntVal $ i1 + i2
+    (Subtract,IntVal i1, IntVal i2) -> IntVal $ i1 - i2
+    (Multiply,IntVal i1, IntVal i2) -> IntVal $ i1 * i2
+    (Divide,IntVal i1, IntVal i2) -> IntVal $ i1 `div` i2
+    (Greater,IntVal i1, IntVal i2) -> BoolVal $ i1 > i2
+    (Less,IntVal i1, IntVal i2) -> BoolVal $ i1 < i2
+    (GEQ,IntVal i1, IntVal i2) -> BoolVal $ i1 >= i2
+    (LEQ,IntVal i1, IntVal i2) -> BoolVal $ i1 <= i2
+    (Equals,IntVal i1, IntVal i2) -> BoolVal $ i1 == i2
+    (NotEquals,IntVal i1, IntVal i2) -> BoolVal $ i1 /= i2
+    _ -> error $ "Typechecking failed. God help us all"
 
-eval_bexp :: BExpr -> Memory -> Val
-eval_bexp exp m =
-    case exp of
+constToVal :: Const -> Val
+constToVal c =
+    case c of
     BoolConst b -> BoolVal b
-    BMonary op bexp ->
-        let v = eval_bexp bexp m in
-        apply_bmon_op op v
-    BBinary op exp1 exp2 ->
-        let v1 = eval_bexp exp1 m in
-        let v2 = eval_bexp exp2 m in
-        apply_bbin_op op v1 v2
-    RBinary op exp1 exp2 ->
-        let v1 = eval_iexp exp1 m in
-        let v2 = eval_iexp exp2 m in
-        apply_rbin_op op v1 v2
-
-apply_bmon_op :: BMonOp -> Val -> Val
-apply_bmon_op op (BoolVal b) =
-    BoolVal $ case op of
-              Not -> not b
-apply_bmon_op op _ = error $ "Cannot apply " ++ show op ++ " to non boolean value"
-
-apply_bbin_op :: BBinOp -> Val -> Val -> Val
-apply_bbin_op op (BoolVal b1) (BoolVal b2) =
-    BoolVal $ case op of
-              And -> b1 && b2
-              Or -> b1 || b2
-apply_bbin_op op _ _ = error $ "Cannot apply " ++ show op ++ " to non boolean values"
-
-apply_rbin_op :: RBinOp -> Val -> Val -> Val
-apply_rbin_op op (IntVal i1) (IntVal i2) =
-    BoolVal $ case op of
-              Greater -> i1 > i2
-              Less -> i1 < i2
-              Equals -> i1 == i2
-              GEQ -> i1 >= i2
-              LEQ -> i1 <= i2
-              NotEquals -> i1 /= i2
-apply_rbin_op op _ _ = error $ "Cannot apply " ++ show op ++ " to non integer values"
+    IntConst i -> IntVal i
+    StringConst s -> StringVal s

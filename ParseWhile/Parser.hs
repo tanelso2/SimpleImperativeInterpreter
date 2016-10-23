@@ -61,10 +61,7 @@ program :: Parser Prog
 program =
     do list <- (sepBy1 function whiteSpace)
        return $ Program $ foldl funcNameFolder Map.empty list
-
-funcNameFolder :: FuncMap -> Func -> FuncMap
-funcNameFolder m f@(Fun name _) = Map.insert name f m
-
+    where funcNameFolder m f@(Fun name _) = Map.insert name f m
 
 function :: Parser Func
 function =
@@ -93,17 +90,17 @@ statement' = ifStmt
 printStmt :: Parser Stmt
 printStmt =
     (do reserved "print"
-        str <- stringLiteral
-        return $ Print str)
+        expr <- expression
+        return $ Print expr)
     <|>
     (do reserved "println"
-        str <- stringLiteral
-        return $ Print $ str ++ "\n")
+        expr <- expression
+        return $ PrintLn $ expr)
 
 ifStmt :: Parser Stmt
 ifStmt =
     do reserved "if"
-       cond <- parens bExpression
+       cond <- expression
        reserved "then"
        stmt1 <- statement
        reserved "else"
@@ -113,7 +110,7 @@ ifStmt =
 whileStmt :: Parser Stmt
 whileStmt =
     do reserved "while"
-       cond <- parens bExpression
+       cond <- expression
        reserved "do"
        stmt <- braces statement
        return $ While cond stmt
@@ -122,7 +119,7 @@ assignStmt :: Parser Stmt
 assignStmt =
     do var <- identifier
        reservedOp "="
-       expr <- iExpression
+       expr <- expression
        return $ Assign var expr
 
 skipStmt :: Parser Stmt
@@ -133,61 +130,50 @@ skipStmt =
 assertStmt :: Parser Stmt
 assertStmt =
     do reserved "assert"
-       cond <- bExpression
+       cond <- expression
        return $ Assert cond
 
-iExpression :: Parser IExpr
-iExpression = buildExpressionParser iOperators iTerm
+expression :: Parser Expr
+expression = buildExpressionParser operators term
 
-iOperators = [
+operators = [
                 [
-                    Prefix (reservedOp "-" >> return (IMonary Neg)),
-                    Prefix (reservedOp "abs" >> return (IMonary Abs))
+                    Prefix (reservedOp "-" >> return (Monary Neg)),
+                    Prefix (reservedOp "abs" >> return (Monary Abs)),
+                    Prefix (reservedOp "not" >> return (Monary Not))
                 ],
                 [
-                    Infix (reservedOp "*" >> return (IBinary Multiply)) AssocLeft,
-                    Infix (reservedOp "/" >> return (IBinary Divide)) AssocLeft
+                    Infix (reservedOp "*" >> return (Binary Multiply)) AssocLeft,
+                    Infix (reservedOp "/" >> return (Binary Divide)) AssocLeft
                 ],
                 [
-                    Infix (reservedOp "+" >> return (IBinary Add)) AssocLeft,
-                    Infix (reservedOp "-" >> return (IBinary Subtract)) AssocLeft
+                    Infix (reservedOp "+" >> return (Binary Add)) AssocLeft,
+                    Infix (reservedOp "-" >> return (Binary Subtract)) AssocLeft
+                ],
+                [
+                    Infix (reservedOp "and" >> return (Binary Add)) AssocLeft,
+                    Infix (reservedOp "or" >> return (Binary Subtract)) AssocLeft
+                ],
+                [
+                    Infix (reservedOp "<" >> return (Binary Less)) AssocLeft,
+                    Infix (reservedOp ">" >> return (Binary Greater)) AssocLeft,
+                    Infix (reservedOp "<=" >> return (Binary LEQ)) AssocLeft,
+                    Infix (reservedOp ">=" >> return (Binary GEQ)) AssocLeft,
+                    Infix (reservedOp "==" >> return (Binary Equals)) AssocLeft,
+                    Infix (reservedOp "!=" >> return (Binary NotEquals)) AssocLeft
                 ]
-             ]
+            ]
 
-iTerm = parens iExpression
+term = parens expression
         <|> liftM Var identifier
-        <|> liftM IntConst integer
-
-bExpression :: Parser BExpr
-bExpression = buildExpressionParser bOperators bTerm
-
-bOperators = [
-                [
-                    Prefix (reservedOp "not" >> return (BMonary Not))
-                ],
-                [
-                    Infix (reservedOp "and" >> return (BBinary And)) AssocLeft,
-                    Infix (reservedOp "or" >> return (BBinary Or)) AssocLeft
-                ]
-             ]
-
-bTerm = parens bExpression
-        <|> (reserved "true" >> return (BoolConst True))
-        <|> (reserved "false" >> return (BoolConst False))
-        <|> rExpression
-
-rExpression =
-    do a1 <- iExpression
-       op <- relation
-       a2 <- iExpression
-       return $ RBinary op a1 a2
-
-relation = (reservedOp ">" >> return Greater)
-           <|> (reservedOp "<" >> return Less)
-           <|> (reservedOp "==" >> return Equals)
-           <|> (reservedOp "<=" >> return LEQ)
-           <|> (reservedOp ">=" >> return GEQ)
-           <|> (reservedOp "!=" >> return NotEquals)
+        <|> (do i <- integer
+                return $ ConstExpr $ IntConst i)
+        <|> (do reserved "true"
+                return $ ConstExpr $ BoolConst True)
+        <|> (do reserved "false"
+                return $ ConstExpr $ BoolConst False)
+        <|> (do str <- stringLiteral
+                return $ ConstExpr $ StringConst str)
 
 parseString :: String -> Prog
 parseString str =

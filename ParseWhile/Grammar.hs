@@ -2,47 +2,44 @@ module ParseWhile.Grammar where
 
 import qualified Data.Map.Strict as Map
 
-data BExpr = BoolConst Bool
-           | BMonary BMonOp BExpr
-           | BBinary BBinOp BExpr BExpr
-           | RBinary RBinOp IExpr IExpr
-           deriving (Show)
-
-data BMonOp = Not deriving (Show)
-
-data BBinOp = And | Or deriving (Show)
-
-data RBinOp = Greater
-            | Less
-            | Equals
-            | GEQ
-            | LEQ
-            | NotEquals
-            deriving (Show)
-
-data IExpr = Var String
+data Const = BoolConst Bool
            | IntConst Integer
-           | IMonary IMonOp IExpr
-           | IBinary IBinOp IExpr IExpr
+           | StringConst String
            deriving (Show)
 
-data IMonOp = Neg
-            | Abs
-            deriving (Show)
+data Expr = Var String
+          | Monary MonOp Expr
+          | Binary BinOp Expr Expr
+          | ConstExpr Const
+          deriving (Show)
 
-data IBinOp = Add
-            | Subtract
-            | Multiply
-            | Divide
-            deriving (Show)
+data MonOp = Not
+           | Neg
+           | Abs
+           deriving (Show)
+
+data BinOp = And
+           | Or
+           | Add
+           | Subtract
+           | Multiply
+           | Divide
+           | Greater
+           | Less
+           | Equals
+           | GEQ
+           | LEQ
+           | NotEquals
+           deriving (Show)
 
 data Stmt = Seq [Stmt]
-          | Assign String IExpr
-          | If BExpr Stmt Stmt
-          | While BExpr Stmt
+          | Assign String Expr
+          | If Expr Stmt Stmt
+          | While Expr Stmt
           | Skip
-          | Print String
-          | Assert BExpr
+          | Print Expr
+          | PrintLn Expr
+          | Assert Expr
           deriving (Show)
 
 data Func = Fun String Stmt deriving (Show)
