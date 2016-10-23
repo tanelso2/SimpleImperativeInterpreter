@@ -59,7 +59,7 @@ whileParser = whiteSpace >> program
 
 program :: Parser Prog
 program =
-    do list <- (sepBy1 function whiteSpace)
+    do list <- sepBy1 function whiteSpace
        return $ Program $ foldl funcNameFolder Map.empty list
     where funcNameFolder m f@(Fun name _) = Map.insert name f m
 
@@ -95,7 +95,7 @@ printStmt =
     <|>
     (do reserved "println"
         expr <- expression
-        return $ PrintLn $ expr)
+        return $ PrintLn expr)
 
 ifStmt :: Parser Stmt
 ifStmt =

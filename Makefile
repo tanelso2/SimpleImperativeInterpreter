@@ -9,3 +9,6 @@ check:
 
 clean:
 	rm -f *.o *.hi ParseWhile/*.o ParseWhile/*.hi main
+
+lint:
+	hlint --ignore="Use fromMaybe" main.hs ParseWhile/*.hs
