@@ -95,7 +95,7 @@ printStmt =
     <|>
     (do reserved "println"
         expr <- expression
-        return $ PrintLn expr)
+        return $ Seq $ [Print expr, Print $ ConstExpr $ StringConst "\n"])
 
 ifStmt :: Parser Stmt
 ifStmt =

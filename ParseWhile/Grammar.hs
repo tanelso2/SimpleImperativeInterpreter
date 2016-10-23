@@ -38,7 +38,6 @@ data Stmt = Seq [Stmt]
           | While Expr Stmt
           | Skip
           | Print Expr
-          | PrintLn Expr
           | Assert Expr
           deriving (Show)
 

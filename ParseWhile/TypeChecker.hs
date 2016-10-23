@@ -39,10 +39,6 @@ typecheckStmt stmt m =
         case typecheckExpr expr m of
         StringType -> m
         _ -> error $ "Expression " ++ show expr ++ " is not a string"
-    PrintLn expr ->
-        case typecheckExpr expr m of
-        StringType -> m
-        _ -> error $ "Expression " ++ show expr ++ " is not a string"
     Assert expr ->
         case typecheckExpr expr m of
         BoolType -> m

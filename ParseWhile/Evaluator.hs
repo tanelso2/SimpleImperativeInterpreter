@@ -39,13 +39,6 @@ evalStmt stmt m =
             do putStr s
                return m
         _ -> error "Typechecking should have failed"
-    PrintLn exp ->
-        case evalExpr exp m of
-        StringVal s ->
-            do putStr s
-               putChar '\n'
-               return m
-        _ -> error "Typechecking should have failed"
     Skip -> return m
     Assert exp ->
         case evalExpr exp m of
