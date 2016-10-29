@@ -4,7 +4,11 @@ import ParseWhile.Grammar
 
 import qualified Data.Map.Strict as Map
 
-data Type = BoolType | IntType | StringType deriving (Eq, Show)
+data Type = BoolType
+          | IntType
+          | StringType
+          | ListOf Type
+          deriving (Eq, Show)
 type TypeMemory = Map.Map String Type
 
 typecheck :: Prog -> Map.Map String TypeMemory
@@ -38,6 +42,7 @@ typecheckStmt stmt m =
     Print expr ->
         case typecheckExpr expr m of
         StringType -> m
+        ListOf _ -> m
         _ -> error $ "Expression " ++ show expr ++ " is not a string"
     Assert expr ->
         case typecheckExpr expr m of
@@ -59,6 +64,11 @@ typecheckExpr expr m =
     Monary op expr ->
         let t = typecheckExpr expr m in
         typecheckMonOp op t
+    ListExpr exprs ->
+        let types = map (`typecheckExpr` m) exprs in
+        if allTheSame types
+        then ListOf $ head types
+        else error $ "Types in list " ++ show exprs ++ " do not match"
 
 typecheckBinOp :: BinOp -> Type -> Type -> Type
 typecheckBinOp op t1 t2 =
@@ -75,6 +85,10 @@ typecheckBinOp op t1 t2 =
     (NotEquals, IntType, IntType) -> BoolType
     (And, BoolType, BoolType) -> BoolType
     (Or, BoolType, BoolType) -> BoolType
+    (Add, ListOf a, ListOf b) -> if a == b then ListOf a else error $ "Cannot join lists of different types: " ++ show a ++ " & " ++ show b
+    (Add, ListOf a, b) -> if a == b then ListOf a else error $ "Cannot append type " ++ show b ++ " to list of type " ++ show a
+    (Add, a, ListOf b) -> if a == b then ListOf a else error $ "Cannot prepend type " ++ show a ++ " to list of type " ++ show b
+    (In, a, ListOf b) -> if a == b then BoolType else error $ "Cannot search for type " ++ show a ++ " in list of type " ++ show b
     _ -> error $ show op ++ " can not be applied to types " ++ show t1 ++ " and " ++ show t2
 
 typecheckMonOp :: MonOp -> Type -> Type
@@ -91,3 +105,7 @@ constToType c =
     BoolConst _ -> BoolType
     IntConst _ -> IntType
     StringConst _ -> StringType
+
+allTheSame :: (Eq a) => [a] -> Bool
+allTheSame [] = True
+allTheSame (x:xs) = all (== x) xs

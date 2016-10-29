@@ -6,7 +6,15 @@ import qualified Data.Map.Strict as Map
 data Val = BoolVal Bool
          | IntVal Integer
          | StringVal String
-         deriving (Show)
+         | ListVal [Val]
+         deriving (Eq)
+instance Show Val where
+    show v =
+        case v of
+        BoolVal b -> show b
+        IntVal i -> show i
+        StringVal s -> s
+        ListVal l -> show l
 
 type Memory = Map.Map String Val
 
@@ -38,6 +46,9 @@ evalStmt stmt m =
         StringVal s ->
             do putStr s
                return m
+        ListVal vals ->
+            do putStr $ show vals
+               return m
         _ -> error "Typechecking should have failed"
     Skip -> return m
     Assert exp ->
@@ -62,6 +73,9 @@ evalExpr exp m =
         let v1 = evalExpr exp1 m in
         let v2 = evalExpr exp2 m in
         applyBinOp op v1 v2
+    ListExpr exprs ->
+        let vals = map (`evalExpr` m) exprs in
+        ListVal vals
 
 applyMonOp :: MonOp -> Val -> Val
 applyMonOp op v =
@@ -86,6 +100,10 @@ applyBinOp op v1 v2 =
     (LEQ,IntVal i1, IntVal i2) -> BoolVal $ i1 <= i2
     (Equals,IntVal i1, IntVal i2) -> BoolVal $ i1 == i2
     (NotEquals,IntVal i1, IntVal i2) -> BoolVal $ i1 /= i2
+    (Add, ListVal l1, ListVal l2) -> ListVal $ l1 ++ l2
+    (Add, ListVal l, v) -> ListVal $ l ++ [v]
+    (Add, v, ListVal l) -> ListVal $ v:l
+    (In, v, ListVal l) -> BoolVal $ v `elem` l
     _ -> error "Typechecking failed. God help us all"
 
 constToVal :: Const -> Val

@@ -5,13 +5,26 @@ import qualified Data.Map.Strict as Map
 data Const = BoolConst Bool
            | IntConst Integer
            | StringConst String
-           deriving (Show)
+instance Show Const where
+    show c =
+        case c of
+        BoolConst b -> show b
+        IntConst i -> show i
+        StringConst s -> s
 
 data Expr = Var String
           | Monary MonOp Expr
           | Binary BinOp Expr Expr
           | ConstExpr Const
-          deriving (Show)
+          | ListExpr [Expr]
+instance Show Expr where
+    show e =
+        case e of
+        Var s -> s
+        Monary op e -> show op ++ show e
+        Binary op e1 e2 -> show e1 ++ show op ++ show e2
+        ConstExpr c -> show c
+        ListExpr l -> show l
 
 data MonOp = Not
            | Neg
@@ -30,6 +43,7 @@ data BinOp = And
            | GEQ
            | LEQ
            | NotEquals
+           | In
            deriving (Show)
 
 data Stmt = Seq [Stmt]

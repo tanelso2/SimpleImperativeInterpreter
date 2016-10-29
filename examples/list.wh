@@ -1,0 +1,16 @@
+def main() {
+    a = [1, 2, 3];
+    println a;
+    b = a + [4];
+    println b;
+    if 5 in b then
+        println "Shouldn't print";
+    else
+        println "IN WORKS!";;
+    c = a + 4;
+    println c;
+    if 4 in c then
+        println "IN worked again";
+    else
+        println "Shouldn't print";;
+}

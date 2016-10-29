@@ -32,10 +32,12 @@ languageDef =
                                       , "println"
                                       , "def"
                                       , "assert"
+                                      , "in"
                                       ]
              , Token.reservedOpNames = ["+", "-", "*", "/", "="
                                        , "<", ">", "and", "or", "not"
                                        , "==", "<=", ">=", "!=", "abs"
+                                       , "in"
                                        ]
              }
 
@@ -50,7 +52,9 @@ semi = Token.semi lexer
 whiteSpace = Token.whiteSpace lexer
 stringLiteral = Token.stringLiteral lexer
 braces = Token.braces lexer
+brackets = Token.brackets lexer
 commaSep = Token.commaSep lexer
+commaSep1 = Token.commaSep1 lexer
 semiSep1 = Token.semiSep1 lexer
 
 
@@ -95,7 +99,7 @@ printStmt =
     <|>
     (do reserved "println"
         expr <- expression
-        return $ Seq $ [Print expr, Print $ ConstExpr $ StringConst "\n"])
+        return $ Seq [Print expr, Print $ ConstExpr $ StringConst "\n"])
 
 ifStmt :: Parser Stmt
 ifStmt =
@@ -160,7 +164,8 @@ operators = [
                     Infix (reservedOp "<=" >> return (Binary LEQ)) AssocLeft,
                     Infix (reservedOp ">=" >> return (Binary GEQ)) AssocLeft,
                     Infix (reservedOp "==" >> return (Binary Equals)) AssocLeft,
-                    Infix (reservedOp "!=" >> return (Binary NotEquals)) AssocLeft
+                    Infix (reservedOp "!=" >> return (Binary NotEquals)) AssocLeft,
+                    Infix (reservedOp "in" >> return (Binary In)) AssocLeft
                 ]
             ]
 
@@ -174,6 +179,8 @@ term = parens expression
                 return $ ConstExpr $ BoolConst False)
         <|> (do str <- stringLiteral
                 return $ ConstExpr $ StringConst str)
+        <|> (do list <- brackets $ commaSep1 expression
+                return $ ListExpr list)
 
 parseString :: String -> Prog
 parseString str =
