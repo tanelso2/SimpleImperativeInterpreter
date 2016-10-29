@@ -10,7 +10,7 @@ instance Show Const where
         case c of
         BoolConst b -> show b
         IntConst i -> show i
-        StringConst s -> s
+        StringConst s -> show s
 
 data Expr = Var String
           | Monary MonOp Expr

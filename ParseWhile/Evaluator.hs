@@ -13,7 +13,7 @@ instance Show Val where
         case v of
         BoolVal b -> show b
         IntVal i -> show i
-        StringVal s -> s
+        StringVal s -> show s
         ListVal l -> show l
 
 type Memory = Map.Map String Val
